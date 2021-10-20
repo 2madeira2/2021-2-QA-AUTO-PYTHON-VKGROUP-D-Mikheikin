@@ -1,4 +1,3 @@
-import time
 import data
 import pytest
 from selenium.common.exceptions import ElementNotInteractableException, ElementClickInterceptedException, \
@@ -6,7 +5,6 @@ from selenium.common.exceptions import ElementNotInteractableException, ElementC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from locators import locators
-
 
 CLICK_RETRY = 10
 
@@ -20,36 +18,33 @@ class BaseCase:
 
     @pytest.fixture(scope='function')
     def login(self):
-        self.find_n_click(locators.BUTTON_LOG)
+        self.find_n_click(locators.BUTTON_LOG_LOCATOR)
 
-        self.send_data_keys(locators.EMAIL_LOC, data.EMAIL)
-        self.send_data_keys(locators.PASSWORD_LOC, data.PASSWORD)
+        self.send_data_keys(locators.EMAIL_LOCATOR, data.EMAIL)
+        self.send_data_keys(locators.PASSWORD_LOCATOR, data.PASSWORD)
 
-        self.find_n_click(locators.BUTTON_AUTH_LOC)
+        self.find_n_click(locators.BUTTON_AUTH_LOCATOR)
 
     # поиск элемента по локатору
-    def find(self, locator):
-        element = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located(locator))
-        return element
+    def find(self, locator, timeout=10):
+        return WebDriverWait(self.driver, timeout).until(EC.presence_of_element_located(locator))
 
-    def send_data_keys(self, locator, value):
-        elem = self.find(locator)
+    def send_data_keys(self, locator, value, timeout=10):
+        elem = self.find(locator, timeout)
         elem.clear()
         elem.send_keys(value)
 
-    def find_n_click(self, locator):
+    def find_n_click(self, locator, timeout=10):
 
         for i in range(CLICK_RETRY):
             try:
-                elem = self.find(locator)
+                elem = self.find(locator, timeout)
                 elem.click()
                 return
-            except StaleElementReferenceException:
+            except (StaleElementReferenceException, ElementNotInteractableException, ElementClickInterceptedException):
                 if i == CLICK_RETRY - 1:
                     raise
-            except ElementNotInteractableException:
-                if i == CLICK_RETRY - 1:
-                    raise
-            except ElementClickInterceptedException:
-                if i == CLICK_RETRY - 1:
-                    raise
+
+    def wait_element_be_invisible(self, locator, timeout):
+        wait = WebDriverWait(self.driver, timeout)
+        wait.until(EC.invisibility_of_element_located(locator))
