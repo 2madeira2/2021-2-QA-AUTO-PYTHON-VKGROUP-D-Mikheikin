@@ -6,18 +6,21 @@ from locators import locators
 
 class TestOne(BaseCase):
     @pytest.mark.UI
-    def test_login(self, login):
+    @pytest.mark.usefixtures('login')
+    def test_login(self):
         assert self.driver.current_url.startswith("https://target.my.com/dashboard")
 
     @pytest.mark.UI
-    def test_logout(self, login):
+    @pytest.mark.usefixtures('login')
+    def test_logout(self):
         self.wait_element_be_invisible(locators.SPINNER_LOCATOR, 100)
         self.find_n_click(locators.CLICK_LIST_LOGOUT_LOCATOR)
         self.find_n_click(locators.CLICK_BUTTON_LOGOUT_LOCATOR)
         assert self.find(locators.BUTTON_LOG_LOCATOR)
 
     @pytest.mark.UI
-    def test_edit_profile(self, login):
+    @pytest.mark.usefixtures('login')
+    def test_edit_profile(self):
         self.find_n_click(locators.PROFILE_LOCATOR)
         self.send_data_keys(locators.NAME_LOCATOR, data.NAME)
         self.send_data_keys(locators.PHONE_LOCATOR, data.PHONE)
@@ -27,8 +30,9 @@ class TestOne(BaseCase):
         assert self.find(locators.PHONE_LOCATOR).get_attribute('value') == data.PHONE
 
     @pytest.mark.UI
+    @pytest.mark.usefixtures('login')
     @pytest.mark.parametrize(('tab', 'tab_elem'), [(locators.BALANCE_TAB_LOCATOR, locators.PAYER_INSCRIPTION_LOCATOR),
                                                    (locators.TOOLS_TAB_LOCATOR, locators.TOOLS_ADD_FEED_BUTTON_LOCATOR)])
-    def test_tabs(self, login, tab, tab_elem):
+    def test_tabs(self, tab, tab_elem):
         self.find_n_click(tab)
         assert self.find(tab_elem)

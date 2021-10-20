@@ -26,15 +26,15 @@ class BaseCase:
         self.find_n_click(locators.BUTTON_AUTH_LOCATOR)
 
     # поиск элемента по локатору
-    def find(self, locator, timeout=10):
+    def find(self, locator, timeout=15):
         return WebDriverWait(self.driver, timeout).until(EC.presence_of_element_located(locator))
 
-    def send_data_keys(self, locator, value, timeout=10):
+    def send_data_keys(self, locator, value, timeout=15):
         elem = self.find(locator, timeout)
         elem.clear()
         elem.send_keys(value)
 
-    def find_n_click(self, locator, timeout=10):
+    def find_n_click(self, locator, timeout=15):
 
         for i in range(CLICK_RETRY):
             try:
