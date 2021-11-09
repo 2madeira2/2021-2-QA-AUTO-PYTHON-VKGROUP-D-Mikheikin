@@ -3,9 +3,12 @@ from ui.locators.locators import NewSegmentPageLocators
 
 
 class NewSegmentPage(BasePage):
-
     url = 'https://target.my.com/segments/segments_list/new'
     locators = NewSegmentPageLocators
+
+    def __init__(self, driver, segment):
+        self.segment = segment
+        super().__init__(driver)
 
     def create_segment(self):
         self.find_n_click(self.locators.SEGMENT_CHECKBOX_LOCATOR)

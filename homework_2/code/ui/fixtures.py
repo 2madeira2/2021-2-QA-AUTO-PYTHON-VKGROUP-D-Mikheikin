@@ -31,8 +31,8 @@ def audience_page(dashboard_page):
 
 
 @pytest.fixture
-def company_page(dashboard_page):
-    return dashboard_page.go_to_create_company()
+def campaign_page(dashboard_page):
+    return dashboard_page.go_to_create_campaign()
 
 
 @pytest.fixture

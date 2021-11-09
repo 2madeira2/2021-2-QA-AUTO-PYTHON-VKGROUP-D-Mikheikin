@@ -9,6 +9,7 @@ from tests.base import BaseCase
 class TestNegativeLogin(BaseCase):
     authorize = False
 
+
     @allure.feature('UI test')
     @allure.description("""We just go on target.com, then we try to login with incorrect login, then we check for 
     the negative result
@@ -67,16 +68,16 @@ class TestDeleteSegment(BaseCase):
 
 
 @pytest.mark.UI
-class TestCreateCompany(BaseCase):
+class TestCreateCampaign(BaseCase):
 
     @allure.feature('UI test')
-    @allure.description("""We just go to target.com, then we create new company, edit all necessary fields,
-    create company and check result
+    @allure.description("""We just go to target.com, then we create new campaign, edit all necessary fields,
+    create campaign and check result
         """)
-    def test_create_company(self, dashboard_page):
-        locator = (dashboard_page.locators.COMPANY_TITLE_LOCATOR[0],
-                   dashboard_page.locators.COMPANY_TITLE_LOCATOR[1].format(dashboard_page.company))
-        dashboard_page.go_to_create_company().create_new_company()
+    def test_create_campaign(self, dashboard_page, campaign_page):
+        locator = (dashboard_page.locators.CAMPAIGN_TITLE_LOCATOR[0],
+                   dashboard_page.locators.CAMPAIGN_TITLE_LOCATOR[1].format(campaign_page.campaign))
+        campaign_page.create_new_campaign()
         self.logger.info(log_messages.check("created company"))
         assert dashboard_page.has_element(locator)
         self.logger.info(log_messages.check_success)
