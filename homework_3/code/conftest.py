@@ -8,7 +8,6 @@ from api.fixtures import *
 
 def pytest_addoption(parser):
     parser.addoption('--url', default='https://target.my.com')
-    parser.addoption('--browser', default='chrome')
     parser.addoption('--debug_log', action='store_true')
 
 
@@ -27,9 +26,8 @@ def api_client(config):
 @pytest.fixture(scope='session')
 def config(request):
     url = request.config.getoption('--url')
-    browser = request.config.getoption('--browser')
     debug_log = request.config.getoption('--debug_log')
-    return {'url': url, 'browser': browser, 'debug_log': debug_log}
+    return {'url': url, 'debug_log': debug_log}
 
 
 @pytest.fixture(scope='session')

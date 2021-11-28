@@ -1,6 +1,7 @@
 import requests
 import logging
 from urllib.parse import urljoin
+from resources import locations
 
 MAX_RESPONSE_LENGTH = 500
 MAX_CAMPAIGNS_SHOW = 200
@@ -44,7 +45,7 @@ class ApiClient:
             'failure': 'https://account.my.com/login/'
         }
 
-        self.session.request('POST', location, headers=headers, data=data, allow_redirects=False)
+        self._request('POST', location, headers=headers, data=data, jsonify=False)
 
     def _request(self, method, location, headers=None, data=None, json=None, params=None, files=None,
                  expected_status=200, jsonify=True):
@@ -83,8 +84,16 @@ class ApiClient:
 
         return csrftoken
 
-    def post_create_campaign(self, name, logo_path):
-        location = '/api/v2/campaigns.json'
+    def upload_content(self, headers, expected_status=200, image=None):
+        logo_headers = headers
+        logo_headers.pop('Content-Type')
+        logo = {'file': ("logo.png", open(image, 'rb'), 'image/png')}
+        request = self._request('POST', '/api/v2/content/static.json', headers=logo_headers, files=logo, jsonify=False)
+        assert request.status_code == expected_status
+        return request.json()['id']
+
+    def post_create_campaign(self, name, logo_path, expected_status=200):
+        location = locations.CREATE_CAMPAIGN_LOCATION
 
         headers = self.post_headers
         headers.update({
@@ -92,11 +101,10 @@ class ApiClient:
             'X-CSRFToken': self.session.cookies.get('csrftoken')
         })
 
-        url_id = self._request('GET', '/api/v1/urls/', params={'url': 'mail.ru'})['id']
-        logo_headers = headers
-        logo_headers.pop('Content-Type')
-        logo = {'file': ("logo.png", open(logo_path, 'rb'), 'image/png')}
-        pic_id = self._request('POST', '/api/v2/content/static.json', headers=logo_headers, files=logo)['id']
+        url_id_request = self._request('GET', '/api/v1/urls/', params={'url': 'mail.ru'}, jsonify=False)
+        assert url_id_request.status_code == expected_status
+        url_id = url_id_request.json()['id']
+        pic_id = self.upload_content(headers, image=logo_path)
 
         campaign_json = {
             "name": name,
@@ -119,8 +127,12 @@ class ApiClient:
                 "name": ""
             }]
         }
-        campaign_id = self._request('POST', location, headers=headers, json=campaign_json)['id']
-        campaign_list = self._request('GET', location, params={'limit': MAX_CAMPAIGNS_SHOW})['items']
+        campaign_id_request = self._request('POST', location, headers=headers, json=campaign_json, jsonify=False)
+        assert campaign_id_request.status_code == expected_status
+        campaign_id = campaign_id_request.json()['id']
+        campaign_list_request = self._request('GET', location, params={'limit': MAX_CAMPAIGNS_SHOW}, jsonify=False)
+        assert campaign_list_request.status_code == expected_status
+        campaign_list = campaign_list_request.json()['items']
 
         assert campaign_id in [c['id'] for c in campaign_list]
 
@@ -130,17 +142,16 @@ class ApiClient:
 
     def post_create_segment(self, name):
         segment_id = self.create_segment(name)
-        segments = self.get_segment_list()
-
-        assert segment_id in [s['id'] for s in segments['items']]
+        id_from_list = self.get_segment_id(segment_id)
+        assert segment_id == id_from_list
         self.delete_segment_by_id(segment_id)
 
     def post_delete_segment(self, name):
         segment_id = self.create_segment(name)
         self.delete_segment_by_id(segment_id)
-        segments = self.get_segment_list()['items']
+        id_from_list = self.get_segment_id(segment_id)
 
-        assert segment_id not in [s['id'] for s in segments]
+        assert segment_id != id_from_list
 
     @staticmethod
     def log_pre(method, url, headers, data, expected_status):
@@ -167,20 +178,26 @@ class ApiClient:
             logger.info(f'{log_str}\n'
                         f'RESPONSE CONTENT: {response.text}\n\n')
 
-    def get_segment_list(self):
-        location = '/api/v2/remarketing/segments.json'
-        return self._request('GET', location, params={'limit': MAX_SEGMENTS_SHOW})
+    def get_segment_id(self, segment_id, expected_code=200):
+        location = locations.GET_SEGMENT_ID_LOCATION
+        segments_request = self._request('GET', location, params={'limit': MAX_SEGMENTS_SHOW}, jsonify=False)
+        assert segments_request.status_code == expected_code
+        segments = segments_request.json()
+        segment_arr = [s['id'] for s in segments['items'] if s['id'] == segment_id]
+        if not segment_arr:
+            return None
+        else:
+            return segment_arr[0]
 
     def delete_segment_by_id(self, segment_id):
-        location = f'/api/v2/remarketing/segments/{segment_id}.json'
-
+        location = locations.DELETE_SEGMENT_BY_ID_LOCATION + str(segment_id) + ".json"
         headers = self.post_headers
         headers.update({'X-CSRFToken': self.session.cookies.get('csrftoken')})
 
         self._request('DELETE', location, headers=headers, jsonify=False, expected_status=204)
 
-    def create_segment(self, name):
-        location = '/api/v2/remarketing/segments.json'
+    def create_segment(self, name, expected_status=200):
+        location = locations.CREATE_SEGMENT_LOCATION
 
         headers = self.post_headers
         headers.update({
@@ -202,5 +219,6 @@ class ApiClient:
             "logicType": "or"
         }
 
-        segment_id = self._request('POST', location, headers=headers, json=json)['id']
-        return segment_id
+        segment_id = self._request('POST', location, headers=headers, json=json, jsonify=False)
+        assert segment_id.status_code == expected_status
+        return segment_id.json()['id']
