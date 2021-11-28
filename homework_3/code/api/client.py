@@ -27,25 +27,17 @@ class ApiClient:
     def __init__(self, base_url):
         self.base_url = base_url
         self.session = requests.Session()
+        self.csrftoken = None
 
-    def get_token(self, user, password):
-        location = 'https://auth-ac.my.com/auth'
+    def get_token(self):
 
-        headers = self.post_headers
-        headers.update({
-            'Origin': 'https://target.my.com',
-            'Referer': 'https://target.my.com/',
-            'Content-Type': 'application/x-www-form-urlencoded'
-        })
-
-        data = {
-            'email': user,
-            'password': password,
-            'continue': 'https://target.my.com/auth/mycom?state=target_login%3D1%26ignore_opener%3D1#email',
-            'failure': 'https://account.my.com/login/'
-        }
-
-        self._request('POST', location, headers=headers, data=data, jsonify=False)
+        location = '/csrf/'
+        headers = {'Referer': 'https://target.my.com/dashboard'}
+        self._request('GET', location=location, headers=headers, jsonify=False)
+        for name, value in self.session.cookies.items():
+            if name == 'csrftoken':
+                self.csrftoken = value
+                break
 
     def _request(self, method, location, headers=None, data=None, json=None, params=None, files=None,
                  expected_status=200, jsonify=True):
@@ -77,12 +69,23 @@ class ApiClient:
         }
 
     def post_login(self, user, password):
-        location = '/csrf/'
+        location = 'https://auth-ac.my.com/auth'
+        headers = self.post_headers
+        headers.update({
+            'Origin': 'https://target.my.com',
+            'Referer': 'https://target.my.com/',
+            'Content-Type': 'application/x-www-form-urlencoded'
+        })
 
-        self.get_token(user, password)
-        csrftoken = self._request('GET', location, jsonify=False)
+        data = {
+            'email': user,
+            'password': password,
+            'continue': 'https://target.my.com/auth/mycom?state=target_login%3D1%26ignore_opener%3D1#email',
+            'failure': 'https://account.my.com/login/'
+        }
 
-        return csrftoken
+        self._request('POST', location, headers=headers, data=data, jsonify=False)
+        self.get_token()
 
     def upload_content(self, headers, expected_status=200, image=None):
         logo_headers = headers
@@ -98,7 +101,7 @@ class ApiClient:
         headers = self.post_headers
         headers.update({
             'Referer': 'https://target.my.com/campaign/new',
-            'X-CSRFToken': self.session.cookies.get('csrftoken')
+            'X-CSRFToken': self.csrftoken
         })
 
         url_id_request = self._request('GET', '/api/v1/urls/', params={'url': 'mail.ru'}, jsonify=False)
@@ -192,7 +195,7 @@ class ApiClient:
     def delete_segment_by_id(self, segment_id):
         location = locations.DELETE_SEGMENT_BY_ID_LOCATION + str(segment_id) + ".json"
         headers = self.post_headers
-        headers.update({'X-CSRFToken': self.session.cookies.get('csrftoken')})
+        headers.update({'X-CSRFToken': self.csrftoken})
 
         self._request('DELETE', location, headers=headers, jsonify=False, expected_status=204)
 
@@ -201,7 +204,7 @@ class ApiClient:
 
         headers = self.post_headers
         headers.update({
-            "X-CSRFToken": self.session.cookies.get('csrftoken'),
+            "X-CSRFToken": self.csrftoken,
         })
 
         json = {
