@@ -10,16 +10,17 @@ class BaseMySQL:
         pass
 
     @pytest.fixture(scope='function', autouse=True)
-    def setup(self, mysql_client):
+    def setup(self, mysql_client, config):
         self.client = mysql_client
         self.builder = MySQLBuilder(self.client)
+        self.config = config
         self.prepare()
 
 
 class TestRequestsCount(BaseMySQL):
 
     def prepare(self):
-        req_count = utils.count_requests()
+        req_count = utils.count_requests(self.config['filepath'])
         self.builder.create_requests_count(req_count)
         self.added_lines_count = 1
 
@@ -31,7 +32,7 @@ class TestRequestsCount(BaseMySQL):
 class TestRequestTypesCount(BaseMySQL):
 
     def prepare(self):
-        req_types_count = utils.count_request_types()
+        req_types_count = utils.count_request_types(self.config['filepath'])
         for request_type in req_types_count:
             self.builder.create_request_type_count(req_type=request_type, count=req_types_count[request_type])
         self.added_lines_count = len(req_types_count)
@@ -44,7 +45,7 @@ class TestRequestTypesCount(BaseMySQL):
 class TestMostFrequentRequests(BaseMySQL):
 
     def prepare(self):
-        most_freq_reqs = utils.most_frequent_requests()
+        most_freq_reqs = utils.most_frequent_requests(self.config['filepath'])
         for most_freq_req in most_freq_reqs:
             self.builder.create_most_frequent_request(url=most_freq_req[0], count=most_freq_req[1])
         self.added_lines_count = len(most_freq_reqs)
@@ -57,7 +58,7 @@ class TestMostFrequentRequests(BaseMySQL):
 class TestLargest4xxRequests(BaseMySQL):
 
     def prepare(self):
-        largest_4xx_reqs = utils.largest_4xx_requests()
+        largest_4xx_reqs = utils.largest_4xx_requests(self.config['filepath'])
         for req in largest_4xx_reqs:
             self.builder.create_largest_4xx_request(url=req[0], size=req[1], ip=req[2])
         self.added_lines_count = len(largest_4xx_reqs)
@@ -70,7 +71,7 @@ class TestLargest4xxRequests(BaseMySQL):
 class TestUsersWith5xxRequests(BaseMySQL):
 
     def prepare(self):
-        users_with_5xx_reqs = utils.users_with_5xx_requests()
+        users_with_5xx_reqs = utils.users_with_5xx_requests(self.config['filepath'])
         for user in users_with_5xx_reqs:
             self.builder.create_user_with_5xx_requests(ip=user[0], requests_number=user[1])
         self.added_lines_count = len(users_with_5xx_reqs)

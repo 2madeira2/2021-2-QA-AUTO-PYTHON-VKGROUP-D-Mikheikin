@@ -1,5 +1,10 @@
 import pytest
 from mysql.client import MySQLClient
+import os
+
+
+def pytest_addoption(parser):
+    parser.addoption('--filepath', default=os.path.abspath(os.path.join(os.path.dirname(__file__), 'access.log')))
 
 
 @pytest.fixture(scope='session')
@@ -8,6 +13,12 @@ def mysql_client():
     mysql_client.connect()
     yield mysql_client
     mysql_client.connection.close()
+
+
+@pytest.fixture(scope='session')
+def config(request):
+    filepath = request.config.getoption('--filepath')
+    return {'filepath': filepath}
 
 
 def pytest_configure(config):
