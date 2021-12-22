@@ -6,5 +6,5 @@ webdriver-manager==3.5.2
 requests==2.26.0
 faker
 Flask
-
-
+SQLAlchemy==1.4.27
+PyMySQL==1.0.2
